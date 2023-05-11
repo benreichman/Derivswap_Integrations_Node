@@ -8,8 +8,8 @@ const { vault_abi } = require('../abis/vault')
 const { orderbook_abi } = require('../abis/orderbook')
 const { abi: erc20Abi } = require("@openzeppelin/contracts/build/contracts/ERC20.json");
 const collateral_erc20 = new ethers.Contract('0xAE91C872d378cFF75Ca099634487Bf94BF71CA94', erc20Abi, signer)
-const orderbook_address = '0xEE0c4EaC7F4821e6e527BaF5985CCfc771983bbD'
-const vault_address = '0x0Bf9099A1D71cc7aDECC6755883899b5f447d35B'
+const orderbook_address = '0x46294d9dE2B5FeEf5336BB2810383cBe808F23ae'
+const vault_address = '0xE2888659616dF175c4d9829FbBdCDDF8d562A081'
 const vault = new ethers.Contract(vault_address, vault_abi, signer);
 const orderbook = new ethers.Contract(orderbook_address, orderbook_abi, signer);
 const connection = new EvmPriceServiceConnection(
@@ -21,9 +21,11 @@ const connection = new EvmPriceServiceConnection(
 async function main() {
 
 	//AAVE 20<=TAKE_PRICE=<100 $85 Strike
-	await create_maker_order(20, 100, 85);
+	// await create_maker_order(20, 100, 85);
 	
-	// await create_taker_order(1)
+	// await create_taker_order(1);
+
+	await settle_order(1);
 
 }
 
@@ -110,6 +112,31 @@ async function create_taker_order(maker_order_id){
 		console.log(error.error.reason)
 	}
 
+}
+
+async function settle_order(taker_order_id){
+	const taker_order = await  orderbook.takerOrdersByID(taker_order_id);
+	const maker_order = await orderbook.makerOrdersByID(parseInt(taker_order.makerOrder_ID));
+	var makers_legs_feed_ids = [];
+	var price_feed_updates = [];
+	for(var i=0; i<parseInt(maker_order.num_legs); i++){
+		const leg = await orderbook.makersLegs(parseInt(maker_order.order_ID),i);
+		makers_legs_feed_ids.push(leg.feedID)
+		const [priceFeedUpdateVaa, updateTimestamp] = await connection.getVaa(leg.feedID, parseInt(taker_order.expiry));
+		console.log('Update timestamp: ',  updateTimestamp)
+		console.log('Expiry timestamp: ',parseInt(taker_order.expiry))
+		var priceFeedUpdate = "0x" + Buffer.from(priceFeedUpdateVaa, "base64").toString("hex");
+		price_feed_updates.push(priceFeedUpdate);
+	}
+	console.log(makers_legs_feed_ids)
+	try {
+		const pyth_update_fee = await orderbook.pyth_update_fee(price_feed_updates);
+		const tx = await vault.settleOrder(parseInt(taker_order.order_ID),price_feed_updates,makers_legs_feed_ids,{value:maker_order.collateral=='0x0000000000000000000000000000000000000000'?ethers.utils.parseEther('0'):pyth_update_fee});
+		await tx.wait();
+		console.log(tx.hash);
+	} catch (error) {
+		console.log(error.error.reason)
+	}
 }
 
 

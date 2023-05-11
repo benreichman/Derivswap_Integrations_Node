@@ -1,4 +1,4 @@
-const orderbook_abi =  [
+const orderbook_abi =[
   {
     "inputs": [
       {
@@ -522,6 +522,11 @@ const orderbook_abi =  [
         "internalType": "uint256",
         "name": "winnerPayout",
         "type": "uint256"
+      },
+      {
+        "internalType": "address",
+        "name": "collateral",
+        "type": "address"
       },
       {
         "internalType": "uint256",

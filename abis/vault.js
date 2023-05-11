@@ -169,6 +169,12 @@ const vault_abi = [
       },
       {
         "indexed": false,
+        "internalType": "address",
+        "name": "_collateral_profit",
+        "type": "address"
+      },
+      {
+        "indexed": false,
         "internalType": "uint256",
         "name": "_timestamp",
         "type": "uint256"
@@ -478,12 +484,12 @@ const vault_abi = [
   },
   {
     "inputs": [],
-    "name": "protocol_earnings",
+    "name": "protocol_earnings_native",
     "outputs": [
       {
-        "internalType": "uint256",
+        "internalType": "int256",
         "name": "",
-        "type": "uint256"
+        "type": "int256"
       }
     ],
     "stateMutability": "view",
@@ -693,8 +699,9 @@ const vault_abi = [
     ],
     "name": "settleOrder",
     "outputs": [],
-    "stateMutability": "nonpayable",
-    "type": "function"
+    "stateMutability": "payable",
+    "type": "function",
+    "payable": true
   },
   {
     "inputs": [
